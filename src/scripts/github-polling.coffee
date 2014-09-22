@@ -53,7 +53,7 @@ class GithubPolling extends EventEmitter
 
   Users: =>
     fetch: (callback) =>
-      @get "/user/repos", "", callback
+      @get "/user/repos?type=owner", "", callback
 
     repos: () =>
       @Users().fetch (err, repos) =>
@@ -96,7 +96,7 @@ class GithubPolling extends EventEmitter
 
   request: (method, path, body, callback) ->
     logger = @robot.logger
-    console.log "github #{method} #{path} #{body}"
+    # console.log "github #{method} #{path} #{body}"
 
     headers =
       "Host": @host
