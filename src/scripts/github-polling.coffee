@@ -4,7 +4,7 @@
 # Configuration:
 #   HUBOT_GITHUB_TOKEN
 #   HUBOT_GITHUB_OWNER
-#   HUBOT_GITHUB_REPOS
+#   HUBOT_GITHUB_REPOS (Optional)
 
 {CronJob}      = require 'cron'
 HTTPS          = require 'https'
@@ -16,36 +16,55 @@ module.exports = (robot) ->
     github_owner: process.env.HUBOT_GITHUB_OWNER
     github_repos: process.env.HUBOT_GITHUB_REPOS
 
-  unless options.github_token? and options.github_repos? and options.github_owner?
+  unless options.github_token? and options.github_owner?
     robot.logger.error \
       'Not enough parameters provided. I need a token, repos, owner'
     process.exit 1
 
   gh_bot = new GithubPolling options, robot
-  gh_repos = options.github_repos.split ','
+
+  gh_repos = []
+  if options.github_repos
+    repos = options.github_repos.split ','
+    for repo in repos
+      gh_repos.push { "name": repo }
 
   cronjob = new CronJob '*/1 * * * *', () =>
-    for repo_name in gh_repos
-      gh_bot.Repos(repo_name).Commits().polling()
+    if gh_repos.length > 0
+      gh_bot.emit 'repo_set', gh_repos
+    else
+      gh_bot.Users().repos()
+
+  cronjob.start()
 
   gh_bot.on 'commit', (msg) =>
     robot.send {}, [msg]
 
-  cronjob.start()
+  gh_bot.on 'repo_set', (repos) =>
+    for repo in repos
+      gh_bot.Repos(repo.name).Commits().polling()
 
 class GithubPolling extends EventEmitter
   constructor: (options, @robot) ->
 
     @token = options.github_token
     @owner = options.github_owner
-    @host = 'api.github.com'
+    @host  = 'api.github.com'
+
+  Users: =>
+    fetch: (callback) =>
+      @get "/users/#{@owner}/repos", "", callback
+
+    repos: () =>
+      @Users().fetch (err, repos) =>
+        @emit 'repo_set', repos
 
   Repos: (repo_name) =>
     Commits: =>
       fetch: (callback) =>
         @get "/repos/#{@owner}/#{repo_name}/commits", "", callback
 
-      polling: (callback) =>
+      polling: () =>
         @Repos(repo_name).Commits().fetch (err, commits) =>
           message = {}
           lastCommit = @robot.brain.get repo_name
