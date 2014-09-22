@@ -1,7 +1,12 @@
 # Description:
 #   A Polling scripts for github repositories. Polling cycle is 1 minute.
+#
+# Configuration:
+#   HUBOT_GITHUB_TOKEN
+#   HUBOT_GITHUB_OWNER
+#   HUBOT_GITHUB_REPOS
 
-{CronJob} = require 'cron'
+{CronJob}      = require 'cron'
 HTTPS          = require 'https'
 {EventEmitter} = require 'events'
 
@@ -23,17 +28,13 @@ module.exports = (robot) ->
     for repo_name in gh_repos
       gh_bot.Repos(repo_name).Commits().polling()
 
-  gh_bot.on 'commit', (repo, msg) =>
+  gh_bot.on 'commit', (msg) =>
     robot.send {}, [msg]
 
   cronjob.start()
 
 class GithubPolling extends EventEmitter
   constructor: (options, @robot) ->
-    unless options.github_token? and options.github_repos? and options.github_owner?
-      @robot.logger.error \
-        'Not enough parameters provided. I need a token, repos, owner'
-      process.exit 1
 
     @token = options.github_token
     @owner = options.github_owner
@@ -69,7 +70,6 @@ class GithubPolling extends EventEmitter
           if message["msg"] != ""
             msg = "#{message["user"]}さんが#{repo_name}にコミットしました.\n" + message["msg"]
             @emit 'commit',
-              repo_name
               msg
 
   get: (path, body, callback) ->
