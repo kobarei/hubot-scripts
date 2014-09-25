@@ -1,6 +1,9 @@
 # Description:
 #   A Polling scripts for github repositories. Polling cycle is 1 minute.
 #
+# Dependencies:
+#   "cron": ""
+#
 # Configuration:
 #   HUBOT_GITHUB_TOKEN
 #   HUBOT_GITHUB_OWNER
