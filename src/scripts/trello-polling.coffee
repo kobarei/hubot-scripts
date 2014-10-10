@@ -28,13 +28,13 @@ module.exports = (robot) ->
 
   boards = options.trello_boards.split ','
 
+  # every 10 seconds
   setInterval =>
     for board_id in boards
       trl_bot.Board(board_id).Actions().polling()
-  , 1000 / (720 / (60 * 60))
+  , 1000 / (360 / (60 * 60))
 
   trl_bot.on 'built', (msg) =>
-    console.log "EMIT"
     robot.send {}, [msg]
 
 class TrelloPolling extends EventEmitter
@@ -106,7 +106,6 @@ class TrelloPolling extends EventEmitter
         @Message.build action, message
 
       build: (action, message) =>
-        console.log 'build'
         premsg = "ボード: #{action.data.board.name}\n"
         premsg += "リスト: #{action.data.list?.name || ''}\n"
         message = premsg + message
@@ -123,15 +122,13 @@ class TrelloPolling extends EventEmitter
         @Board(board_id).Actions().fetch (err, actions) =>
           lastAction = @robot.brain.get board_id
           if lastAction == null
-            @robot.brain.set board_id, actions[4].date
+            @robot.brain.set board_id, actions[0].date
             @robot.brain.save()
 
           for action in actions.reverse()
             lastAction = @robot.brain.get board_id
             if lastAction < action.date
-              console.log "BeforeaddMemberToCard"
               @Message[action.type] action
-              console.log "AfteraddMemberToCard"
               lastAction = action.date
 
             @robot.brain.set board_id, lastAction
@@ -142,7 +139,7 @@ class TrelloPolling extends EventEmitter
 
   request: (method, path, body, callback) ->
     logger = @robot.logger
-    console.log "trello #{method} #{path} #{body}"
+    # console.log "trello #{method} #{path} #{body}"
 
     headers =
       "Host" : @host
